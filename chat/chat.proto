@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package chat;
+
+// Interface exported by the server.
+service Chat {
+  rpc Conn(ConnReq) returns (stream Msg);
+
+  rpc Pub(PubReq) returns (PubRsp);
+
+  rpc Group(GroupReq) returns (GroupRsp);
+}
+
+enum AuthType {
+  NAME_PWD = 0;
+  EMAIL_PWD = 1;
+  PHONE_PWD = 2;
+  PHONE_CODE = 3;
+}
+
+message ConnReq {}
+
+message ConnRsp {}
+
+message GroupReq {
+  string gid = 1;
+}
+
+message GroupRsp {
+  uint64 gid = 1;
+}
+
+message PubReq {
+}
+
+message PubRsp {
+
+}
+
+message Msg {
+  uint64 msg_type = 1;
+  uint64 msg_id = 2;
+  uint64 from_id = 3;
+  uint64 to_id = 4; // broadcast: gid; unicast: to_uid
+  ContentType content_type = 5;
+  string content = 6;
+  string name = 7; // from user nickname
+}
+
+enum ContentType {
+  TEXT = 0;
+  IMAGE = 1;
+}
