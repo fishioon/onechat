@@ -31,6 +31,7 @@ message GroupRsp {
 }
 
 message PubReq {
+  Msg msg = 1;
 }
 
 message PubRsp {
