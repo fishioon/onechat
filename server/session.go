@@ -11,52 +11,26 @@ const (
 	msgbufSzie = 10
 )
 
-// Group ...
-type Group struct {
-	ID uint64
-}
-
-// AddSession ...
-func (g *Group) AddSession(s *Session) {
-}
-
-// RemoveSession ...
-func (g *Group) RemoveSession(s *Session) {
-}
-
 // Session ...
 type Session struct {
 	Sid    string //session id
 	UID    string
-	msgbuf chan *pb.Msg
 	online bool
+	msgch  chan *pb.Msg
 	//groups map[uint64]*Group
 }
 
 // NewSession ...
-func NewSession(uid string) *Session {
-	//sid := newSessionID()
-	sid := RandStringBytes(32)
+func NewSession(sid, uid string) *Session {
+	if sid == "" {
+		sid := RandStringBytes(32)
+	}
 	return &Session{
 		Sid:    sid,
 		UID:    uid,
-		msgbuf: make(chan *pb.Msg, msgbufSzie),
-		//groups: make(map[uint64]*Group),
 		online: true,
+		msgch:  make(chan *pb.Msg, 10),
 	}
-}
-
-func (s *Session) pubMsg(msg *pb.Msg) error {
-	s.msgbuf <- msg
-	return nil
-}
-
-func (s *Session) joinGroup(group *Group) {
-	group.AddSession(s)
-}
-
-func (s *Session) leaveGroup(group *Group) {
-	group.RemoveSession(s)
 }
 
 func (s *Session) offline() {
