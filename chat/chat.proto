@@ -27,7 +27,7 @@ message GroupReq {
 }
 
 message GroupRsp {
-  uint64 gid = 1;
+  string gid = 1;
 }
 
 message PubReq {
@@ -39,10 +39,10 @@ message PubRsp {
 }
 
 message Msg {
-  uint64 msg_type = 1;
-  uint64 msg_id = 2;
-  uint64 from_id = 3;
-  uint64 to_id = 4; // broadcast: gid; unicast: to_uid
+  MsgType msg_type = 1;
+  string msg_id = 2;
+  string from_id = 3;
+  string to_id = 4; // GROUP: gid, P2P: uid
   ContentType content_type = 5;
   string content = 6;
   string name = 7; // from user nickname
@@ -51,4 +51,9 @@ message Msg {
 enum ContentType {
   TEXT = 0;
   IMAGE = 1;
+}
+
+enum MsgType {
+  GROUP = 0;
+  P2P = 1;
 }
