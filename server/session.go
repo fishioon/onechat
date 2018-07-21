@@ -23,7 +23,7 @@ type Session struct {
 // NewSession ...
 func NewSession(sid, uid string) *Session {
 	if sid == "" {
-		sid := RandStringBytes(32)
+		sid = RandStringBytes(32)
 	}
 	return &Session{
 		Sid:    sid,

@@ -37,7 +37,7 @@ func (cs *ChatServer) Conn(in *pb.ConnReq, stream pb.Chat_ConnServer) error {
 		select {
 		case <-stream.Context().Done():
 			return stream.Context().Err()
-		case msg := <-s.msgbuf:
+		case msg := <-s.msgch:
 			if err := stream.Send(msg); err != nil {
 				return err
 			}
