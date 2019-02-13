@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package chat;
+
+service Chat {
+  rpc Conn(ConnReq) returns (stream Msg);
+  rpc PubMsg(PubMsgReq) returns (PubMsgRsp);
+  rpc GroupAction(GroupReq) returns (GroupRsp);
+}
+
+message ConnReq {}
+
+message GroupReq { string gid = 1; }
+
+message GroupRsp { string gid = 1; }
+
+message PubMsgReq { Msg msg = 1; }
+
+message PubMsgRsp {}
+
+message Msg {
+  string msg_id = 1;
+  string from_id = 2;
+  string to_id = 3; // GROUP: gid, P2P: uid
+  string content = 4;
+}

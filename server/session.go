@@ -1,9 +1,9 @@
-package main
+package server
 
 import (
 	"math/rand"
 
-	pb "github.com/fishioon/onechat/chat"
+	pb "github.com/fishioon/onechat/proto"
 	//"math/rand"
 )
 
