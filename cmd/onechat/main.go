@@ -43,8 +43,9 @@ func serve(c *server.Config, logger *zap.Logger) error {
 	s := grpc.NewServer(grpcOptions...)
 	chatServer := server.NewChatServer(c, logger)
 	pb.RegisterChatServer(s, chatServer)
-	err = s.Serve(list)
-	return fmt.Errorf("listening on %s failed: %v", c.Addr, err)
+
+	logger.Info("server running, start listen", zap.String("addr", c.Addr))
+	return s.Serve(list)
 }
 
 func main() {

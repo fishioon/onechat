@@ -3,7 +3,7 @@ package server
 import (
 	"math/rand"
 
-	pb "github.com/fishioon/onechat/proto"
+	pb "github.com/fishioon/onechat/onechat"
 	//"math/rand"
 )
 

@@ -16,6 +16,6 @@ proto:
 	@protoc -I/usr/local/include -I. \
 		-I $(GOPATH)/src \
 		--go_out=plugins=grpc:. \
-		proto/*.proto
+		onechat/*.proto
 
 .PHONY:  clean install

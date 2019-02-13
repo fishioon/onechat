@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package chat;
+package onechat;
 
 service Chat {
   rpc Conn(ConnReq) returns (stream Msg);

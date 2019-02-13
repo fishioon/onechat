@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	pb "github.com/fishioon/onechat/proto"
+	pb "github.com/fishioon/onechat/onechat"
 	"go.uber.org/zap"
 )
 
@@ -14,6 +14,7 @@ type Config struct {
 
 // ChatServer is used to implement chat
 type ChatServer struct {
+	logger   *zap.Logger
 	sessions map[string]*Session
 	groups   map[string]*Group
 }
@@ -51,26 +52,25 @@ func (cs *ChatServer) Conn(in *pb.ConnReq, stream pb.Chat_ConnServer) error {
 }
 
 // Pub ...
-func (cs *ChatServer) Pub(ctx context.Context, in *pb.PubReq) (*pb.PubRsp, error) {
+func (cs *ChatServer) PubMsg(ctx context.Context, in *pb.PubMsgReq) (*pb.PubMsgRsp, error) {
 	s := getSession(ctx)
 	msg := in.GetMsg()
 	if msg.GetFromId() != s.UID {
 		return nil, errors.New("bad request")
 	}
-	if msg.GetMsgType() == pb.MsgType_GROUP {
-		group, err := cs.GetGroup(msg.GetToId())
-		if err != nil {
-			return nil, err
-		}
-		if err = group.Pub(msg); err != nil {
-			return nil, err
-		}
+	group, err := cs.GetGroup(msg.GetToId())
+	if err != nil {
+		cs.logger.Error("get group fail", zap.Error(err), zap.String("gid", msg.GetToId()))
+		return nil, err
 	}
-	return &pb.PubRsp{}, nil
+	if err = group.Pub(msg); err != nil {
+		return nil, err
+	}
+	return &pb.PubMsgRsp{}, nil
 }
 
 // Group ...
-func (cs *ChatServer) Group(ctx context.Context, in *pb.GroupReq) (*pb.GroupRsp, error) {
+func (cs *ChatServer) GroupAction(ctx context.Context, in *pb.GroupReq) (*pb.GroupRsp, error) {
 	return nil, nil
 }
 
