@@ -1,11 +1,16 @@
-package main
+package server
 
 import (
 	"context"
 	"errors"
 
-	pb "github.com/fishioon/onechat/chat"
+	pb "github.com/fishioon/onechat/proto"
+	"go.uber.org/zap"
 )
+
+type Config struct {
+	Addr string
+}
 
 // ChatServer is used to implement chat
 type ChatServer struct {
@@ -14,7 +19,7 @@ type ChatServer struct {
 }
 
 // NewChatServer ...
-func NewChatServer() *ChatServer {
+func NewChatServer(c *Config, logger *zap.Logger) *ChatServer {
 	return &ChatServer{
 		sessions: make(map[string]*Session),
 		groups:   make(map[string]*Group),
