@@ -5,37 +5,50 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"strings"
 
-	pb "github.com/fishioon/onechat/proto"
+	pb "github.com/fishioon/onechat/onechat"
 	"github.com/fishioon/onechat/server"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 )
 
-/*
-func commandVersion() *cobra.Command {
-	return &cobra.Command{
-		Use:   "version",
-		Short: "Print the version and exit",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf(`Onechat Version: %s
-Build Time: %s
-Go Version: %s
-Go OS/ARCH: %s %s
-`, version.Version, version.BuildTime, runtime.Version(), runtime.GOOS, runtime.GOARCH)
-		},
+var (
+	errMissingMetadata = status.Errorf(codes.InvalidArgument, "missing metadata")
+	errInvalidToken    = status.Errorf(codes.Unauthenticated, "invalid token")
+)
+
+// valid validates the authorization.
+func valid(authorization []string) bool {
+	if len(authorization) < 1 {
+		return false
 	}
+	token := strings.TrimPrefix(authorization[0], "Bearer ")
+	// Perform the token validation here. For the sake of this example, the code
+	// here forgoes any of the usual OAuth2 token validation and instead checks
+	// for a token matching an arbitrary string.
+	return token == "some-secret-token"
 }
-*/
+
+func ensureValidToken(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, errMissingMetadata
+	}
+	// The keys within metadata.MD are normalized to lowercase.
+	// See: https://godoc.org/google.golang.org/grpc/metadata#New
+	if !valid(md["authorization"]) {
+		return nil, errInvalidToken
+	}
+	// Continue execution of handler after ensuring a valid token.
+	return handler(ctx, req)
+}
 
 func serve(c *server.Config, logger *zap.Logger) error {
-	testInterceptor := func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		md, _ := metadata.FromIncomingContext(ctx)
-		logger.Info("metadata interceptor", zap.Any("md", md))
-		return handler(ctx, req)
-	}
-	grpcOptions := []grpc.ServerOption{grpc.UnaryInterceptor(testInterceptor)}
+	grpcOptions := []grpc.ServerOption{grpc.UnaryInterceptor(ensureValidToken)}
 	list, err := net.Listen("tcp", c.Addr)
 	if err != nil {
 		return fmt.Errorf("listening on %s failed: %v", c.Addr, err)

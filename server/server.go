@@ -52,9 +52,8 @@ func (cs *ChatServer) Conn(in *pb.ConnReq, stream pb.Chat_ConnServer) error {
 }
 
 // Pub ...
-func (cs *ChatServer) PubMsg(ctx context.Context, in *pb.PubMsgReq) (*pb.PubMsgRsp, error) {
+func (cs *ChatServer) Pub(ctx context.Context, msg *pb.Msg) (*pb.PubMsgRsp, error) {
 	s := getSession(ctx)
-	msg := in.GetMsg()
 	if msg.GetFromId() != s.UID {
 		return nil, errors.New("bad request")
 	}

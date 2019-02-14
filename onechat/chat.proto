@@ -4,7 +4,7 @@ package onechat;
 
 service Chat {
   rpc Conn(ConnReq) returns (stream Msg);
-  rpc PubMsg(PubMsgReq) returns (PubMsgRsp);
+  rpc Pub(Msg) returns (PubMsgRsp);
   rpc GroupAction(GroupReq) returns (GroupRsp);
 }
 
