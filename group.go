@@ -1,7 +1,7 @@
-package server
+package main
 
 import (
-	pb "github.com/fishioon/onechat/proto"
+	pb "github.com/fishioon/onechat/chat"
 )
 
 // Group ...

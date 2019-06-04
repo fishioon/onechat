@@ -1,11 +1,10 @@
-package server
+package main
 
 import (
 	"context"
 	"errors"
 
-	pb "github.com/fishioon/onechat/proto"
-	"go.uber.org/zap"
+	pb "github.com/fishioon/onechat/chat"
 )
 
 type Config struct {
@@ -19,7 +18,7 @@ type ChatServer struct {
 }
 
 // NewChatServer ...
-func NewChatServer(c *Config, logger *zap.Logger) *ChatServer {
+func NewChatServer() *ChatServer {
 	return &ChatServer{
 		sessions: make(map[string]*Session),
 		groups:   make(map[string]*Group),
@@ -52,11 +51,8 @@ func (cs *ChatServer) Conn(in *pb.ConnReq, stream pb.Chat_ConnServer) error {
 
 // Pub ...
 func (cs *ChatServer) Pub(ctx context.Context, in *pb.PubReq) (*pb.PubRsp, error) {
-	s := getSession(ctx)
+	// s := getSession(ctx)
 	msg := in.GetMsg()
-	if msg.GetFromId() != s.UID {
-		return nil, errors.New("bad request")
-	}
 	if msg.GetMsgType() == pb.MsgType_GROUP {
 		group, err := cs.GetGroup(msg.GetToId())
 		if err != nil {

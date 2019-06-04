@@ -1,21 +1,20 @@
-PROJ=onechat
-ORG_PATH=github.com/fishioon
-REPO_PATH=$(ORG_PATH)/$(PROJ)
+BINARY=onechat
+
 VERSION=`git rev-parse --short HEAD`
 BUILD=`date +%FT%T%z`
 
-$( shell mkdir -p bin ) 
-
-LDFLAGS=-ldflags "-X $(REPO_PATH)/version.Version=${VERSION} -X $(REPO_PATH)/version.BuildTime=${BUILD}"
+LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.Build=${BUILD}"
 
 build:
-	@go build ${LDFLAGS} -o bin/onechat $(REPO_PATH)/cmd/onechat
-#	@go build ${LDFLAGS} -o bin/client $(REPO_PATH)/cmd/client
+	@go build ${LDFLAGS} -o chatserver
 
 proto:
-	@protoc -I/usr/local/include -I. \
-		-I $(GOPATH)/src \
-		--go_out=plugins=grpc:. \
-		proto/*.proto
+	go generate github.com/fishioon/onechat/...
+
+install:
+	go install ${LDFLAGS}
+
+clean:
+	if [ -f ${BINARY} ] ; then rm ${BINARY} ; fi
 
 .PHONY:  clean install
