@@ -3,6 +3,7 @@ module github.com/fishioon/onechat
 go 1.12
 
 require (
+	github.com/go-redis/redis v6.15.2+incompatible
 	github.com/golang/protobuf v1.3.1
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect

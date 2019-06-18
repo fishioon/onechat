@@ -1,4 +1,4 @@
-BINARY=onechat
+BINARY=bin/onechat
 
 VERSION=`git rev-parse --short HEAD`
 BUILD=`date +%FT%T%z`
@@ -6,10 +6,10 @@ BUILD=`date +%FT%T%z`
 LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.Build=${BUILD}"
 
 build:
-	@go build ${LDFLAGS} -o chatserver
+	@go build ${LDFLAGS} -o bin/chatserver
 
 proto:
-	go generate github.com/fishioon/onechat/...
+	protoc -I chat/ chat/*.proto --go_out=plugins=grpc:chat
 
 install:
 	go install ${LDFLAGS}

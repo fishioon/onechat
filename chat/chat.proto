@@ -8,7 +8,9 @@ service Chat {
   rpc GroupAction(GroupActionReq) returns (GroupActionRsp);
 }
 
-message ConnReq {}
+message ConnReq {
+  string token = 1;
+}
 
 message GroupActionReq {
   string gid = 1;
