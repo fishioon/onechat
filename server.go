@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"log"
 	"strings"
 
 	pb "github.com/fishioon/onechat/chat"
-	"github.com/go-redis/redis"
 )
 
 type Config struct {
@@ -15,40 +15,69 @@ type Config struct {
 
 type Stream struct {
 	channel chan *pb.Msg
+	online  bool
 }
 
-type Channel struct {
+type Session struct {
+	sid string
+	uid string
+}
+
+type Group struct {
+	id      string
+	uri     string
 	streams map[string]*Stream
 }
 
 // ChatServer is used to implement chat
 type ChatServer struct {
-	rds          *redis.ClusterClient
-	streams      map[string]*Stream
-	channelNames []string
-	channels     map[string]*Channel
+	streams map[string]*Stream
+	groups  map[string]*Group
+	in      chan *pb.Msg
+	action  chan Action
+}
+
+type Action struct {
+	action string
+	id     string
 }
 
 // NewChatServer ...
 func NewChatServer() *ChatServer {
-	rds := redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs: []string{":7000", ":7001", ":7002", ":7003", ":7004", ":7005"},
-	})
-	rds.Ping()
 	return &ChatServer{
-		rds: rds,
+		in:      make(chan *pb.Msg, 1000),
+		action:  make(chan Action, 1000),
+		streams: make(map[string]*Stream),
+		groups:  make(map[string]*Group),
 	}
 }
 
 func (cs *ChatServer) Working() {
-	res, err := cs.rds.XReadStreams(cs.channelNames...).Result()
-	if err != nil {
-		log.Printf("[redis] read streams err=%s", err.Error())
-	}
-	for _, e := range res {
-		if e.Stream == "x:streams" {
+	for {
+		select {
+		case msg := <-cs.in:
+			if ch, ok := cs.groups[msg.GetToId()]; ok {
+				for _, e := range ch.streams {
+					if e.online {
+						e.channel <- msg
+					}
+				}
+			}
+		case action := <-cs.action:
+			switch action.action {
+			case "leave":
+				delete(cs.groups, action.id)
+			case "dead":
+				delete(cs.streams, action.id)
+			case "join":
+			}
 		}
 	}
+}
+
+func (cs *ChatServer) sendMsgToChannel(msg *pb.Msg) error {
+	cs.in <- msg
+	return nil
 }
 
 func (cs *ChatServer) GetStream(token string) *Stream {
@@ -56,6 +85,7 @@ func (cs *ChatServer) GetStream(token string) *Stream {
 	if !ok {
 		s := &Stream{
 			channel: make(chan *pb.Msg, 100),
+			online:  true,
 		}
 		cs.streams[token] = s
 	}
@@ -65,72 +95,47 @@ func (cs *ChatServer) GetStream(token string) *Stream {
 // Conn ...
 func (cs *ChatServer) Conn(in *pb.ConnReq, stream pb.Chat_ConnServer) error {
 	s := cs.GetStream(in.GetToken())
-	for {
-		select {
-		case msg := <-s.channel:
-			if err := stream.Send(msg); err != nil {
-				log.Printf("stream send fail %s", err.Error())
-				return err
-			}
+	defer func() {
+		s.online = false
+	}()
+	for msg := range s.channel {
+		if err := stream.Send(msg); err != nil {
+			log.Printf("stream send fail %s", err.Error())
+			return err
 		}
 	}
-	/*
-		userAction := "x:action:" + uid
-		streams := []string{userAction}
-		for {
-			res, err := cs.rds.XReadStreams(streams...).Result()
-			for _, e := range res {
-				if e.Stream == userAction {
-					for _, msg := range e.Messages {
-						if msg.Values["action"] == "group-action" {
-						}
-					}
-				} else if strings.HasPrefix(e.Stream, "x:channels:") {
-					for _, msg := range e.Messages {
-						if err := stream.Send(msg); err != nil {
-							log.Printf("stream send fail %s", err.Error())
-							return err
-						}
-					}
-				}
-			}
-		}
-	*/
+	return nil
 }
 
 // Pub ...
-func (cs *ChatServer) PubMsg(ctx context.Context, in *pb.PubMsgReq) (*pb.PubMsgRsp, error) {
-	// s := getSession(ctx)
-	return nil, nil
+func (cs *ChatServer) PubMsg(ctx context.Context, req *pb.PubMsgReq) (*pb.PubMsgRsp, error) {
+	msg := req.GetMsg()
+	err := cs.sendMsgToChannel(msg)
+	return &pb.PubMsgRsp{}, err
 }
 
 // Group ...
 func (cs *ChatServer) GroupAction(ctx context.Context, req *pb.GroupActionReq) (resp *pb.GroupActionRsp, err error) {
+	s := ctx.Value("session").(*Session)
 	switch req.GetAction() {
 	case "active":
 	case "join":
+		group := cs.GetGroup(req.GetGid())
+		if _, ok := group.streams[s.sid]; ok {
+			return nil, nil
+		}
+		stream, ok := cs.streams[s.sid]
+		if !ok {
+			return nil, errors.New("need connect first")
+		}
+		group.streams[s.sid] = stream
 	}
 	return nil, nil
 }
 
-/*
-func (cs *ChatServer) GetSessionByToken(token string) (*Session, error) {
-	arr := strings.Split(token, "-")
+func (cs *ChatServer) GetGroup(gid string) *Group {
+	return nil
 }
-
-func (cs *ChatServer) GetSession(uid, token string) (*Session, error) {
-	ss, ok := cs.sessions[sid]
-	if !ok {
-		ss = NewSession(sid, uid)
-		cs.sessions[sid] = ss
-	}
-	return ss, nil
-}
-
-func getSession(ctx context.Context) *Session {
-	return ctx.Value("session").(*Session)
-}
-*/
 
 func authToken(token string) string {
 	return strings.Split(token, "-")[0]

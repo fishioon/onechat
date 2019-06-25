@@ -66,7 +66,6 @@ func auth(ctx context.Context, cs *ChatServer) error {
 	}
 	token := strings.TrimPrefix(authorization[0], "Bearer ")
 	res := strings.Split(token, "-")
-	ctx = context.WithValue(ctx, "uid", res[0])
-	ctx = context.WithValue(ctx, "accesstoken", res[1])
+	ctx = context.WithValue(ctx, "session", &Session{uid: res[0], sid: res[1]})
 	return nil
 }
