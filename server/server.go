@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"log"
-	"strings"
 
+	"github.com/bwmarrin/snowflake"
 	pb "github.com/fishioon/onechat/chat"
 )
 
@@ -14,6 +14,7 @@ type Config struct {
 }
 
 type Stream struct {
+	token   string
 	channel chan *pb.Msg
 	online  bool
 }
@@ -31,6 +32,7 @@ type Group struct {
 
 // ChatServer is used to implement chat
 type ChatServer struct {
+	snow    *snowflake.Node
 	streams map[string]*Stream
 	groups  map[string]*Group
 	in      chan *pb.Msg
@@ -44,20 +46,26 @@ type Action struct {
 
 // NewChatServer ...
 func NewChatServer() *ChatServer {
-	return &ChatServer{
+	snow, _ := snowflake.NewNode(1)
+	cs := &ChatServer{
+		snow:    snow,
 		in:      make(chan *pb.Msg, 1000),
 		action:  make(chan Action, 1000),
 		streams: make(map[string]*Stream),
 		groups:  make(map[string]*Group),
 	}
+	go cs.Working()
+	return cs
 }
 
 func (cs *ChatServer) Working() {
 	for {
 		select {
 		case msg := <-cs.in:
-			if ch, ok := cs.groups[msg.GetToId()]; ok {
-				for _, e := range ch.streams {
+			log.Printf("recv msg: [%v]", msg)
+			if group, ok := cs.groups[msg.GetToId()]; ok {
+				for _, e := range group.streams {
+					log.Printf("push msg to stream: [%+v]", e)
 					if e.online {
 						e.channel <- msg
 					}
@@ -83,7 +91,8 @@ func (cs *ChatServer) sendMsgToChannel(msg *pb.Msg) error {
 func (cs *ChatServer) GetStream(token string) *Stream {
 	s, ok := cs.streams[token]
 	if !ok {
-		s := &Stream{
+		s = &Stream{
+			token:   token,
 			channel: make(chan *pb.Msg, 100),
 			online:  true,
 		}
@@ -94,22 +103,31 @@ func (cs *ChatServer) GetStream(token string) *Stream {
 
 // Conn ...
 func (cs *ChatServer) Conn(in *pb.ConnReq, stream pb.Chat_ConnServer) error {
-	s := cs.GetStream(in.GetToken())
+	token := in.GetToken()
+	if token == "" {
+		return errors.New("token empty")
+	}
+	s := cs.GetStream(token)
 	defer func() {
 		s.online = false
 	}()
-	for msg := range s.channel {
-		if err := stream.Send(msg); err != nil {
-			log.Printf("stream send fail %s", err.Error())
-			return err
+	log.Printf("stream connect success: [%+v]", s)
+	for {
+		select {
+		case msg := <-s.channel:
+			log.Printf("send msg [%s] to stream [%s]", msg.GetToId(), in.GetToken())
+			if err := stream.Send(msg); err != nil {
+				log.Printf("stream send fail %s", err.Error())
+				return err
+			}
 		}
 	}
-	return nil
 }
 
 // Pub ...
 func (cs *ChatServer) PubMsg(ctx context.Context, req *pb.PubMsgReq) (*pb.PubMsgRsp, error) {
 	msg := req.GetMsg()
+	msg.MsgId = cs.snow.Generate().String()
 	err := cs.sendMsgToChannel(msg)
 	return &pb.PubMsgRsp{}, err
 }
@@ -122,7 +140,7 @@ func (cs *ChatServer) GroupAction(ctx context.Context, req *pb.GroupActionReq) (
 	case "join":
 		group := cs.GetGroup(req.GetGid())
 		if _, ok := group.streams[s.sid]; ok {
-			return nil, nil
+			return &pb.GroupActionRsp{}, nil
 		}
 		stream, ok := cs.streams[s.sid]
 		if !ok {
@@ -130,13 +148,17 @@ func (cs *ChatServer) GroupAction(ctx context.Context, req *pb.GroupActionReq) (
 		}
 		group.streams[s.sid] = stream
 	}
-	return nil, nil
+	return &pb.GroupActionRsp{}, nil
 }
 
 func (cs *ChatServer) GetGroup(gid string) *Group {
-	return nil
-}
-
-func authToken(token string) string {
-	return strings.Split(token, "-")[0]
+	group, ok := cs.groups[gid]
+	if !ok {
+		group = &Group{
+			id:      gid,
+			streams: make(map[string]*Stream),
+		}
+		cs.groups[gid] = group
+	}
+	return group
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"log"
 	"net"
@@ -24,9 +25,8 @@ var (
 
 func main() {
 	address := flag.String("host", "127.0.0.1:9379", "onechat server listen address")
-	tls := flag.Bool("tls", false, "Connection uses TLS if true, else plain TCP")
-	certFile := flag.String("cert_file", "", "The TLS cert file")
-	keyFile := flag.String("key_file", "", "The TLS key file")
+	certFile := flag.String("cert", "server.pem", "The TLS cert file")
+	keyFile := flag.String("key", "server.key", "The TLS key file")
 
 	flag.Parse()
 	lis, err := net.Listen("tcp", *address)
@@ -36,36 +36,35 @@ func main() {
 	opts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(ensureValidToken),
 	}
-	if *tls {
-		creds, err := credentials.NewServerTLSFromFile(*certFile, *keyFile)
-		if err != nil {
-			log.Fatalf("Failed to generate credentials %v", err)
-		}
-		opts = append(opts, grpc.Creds(creds))
+	cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
+	if err != nil {
+		log.Fatalf("Failed to generate credentials %v", err)
 	}
+	opts = append(opts, grpc.Creds(credentials.NewServerTLSFromCert(&cert)))
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterChatServer(grpcServer, NewChatServer())
 	grpcServer.Serve(lis)
 }
 
 func ensureValidToken(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	if err := auth(ctx, info.Server.(*ChatServer)); err != nil {
+	session, err := auth(ctx, info.Server.(*ChatServer)); 
+	if err != nil {
 		return nil, err
 	}
+	ctx = context.WithValue(ctx, "session", session)
 	return handler(ctx, req)
 }
 
-func auth(ctx context.Context, cs *ChatServer) error {
+func auth(ctx context.Context, cs *ChatServer) (*Session, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return errMissingMetadata
+		return nil, errMissingMetadata
 	}
 	authorization := md["authorization"]
 	if len(authorization) < 1 {
-		return errInvalidToken
+		return nil, errInvalidToken
 	}
 	token := strings.TrimPrefix(authorization[0], "Bearer ")
 	res := strings.Split(token, "-")
-	ctx = context.WithValue(ctx, "session", &Session{uid: res[0], sid: res[1]})
-	return nil
+	return &Session{uid: res[0], sid: token}, nil
 }
