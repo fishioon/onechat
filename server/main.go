@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"crypto/tls"
 	"flag"
 	"log"
 	"net"
@@ -11,7 +10,6 @@ import (
 	pb "github.com/fishioon/onechat/chat"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
@@ -25,8 +23,10 @@ var (
 
 func main() {
 	address := flag.String("host", "127.0.0.1:9379", "onechat server listen address")
-	certFile := flag.String("cert", "server.pem", "The TLS cert file")
-	keyFile := flag.String("key", "server.key", "The TLS key file")
+	/*
+		certFile := flag.String("cert", "server.pem", "The TLS cert file")
+		keyFile := flag.String("key", "server.key", "The TLS key file")
+	*/
 
 	flag.Parse()
 	lis, err := net.Listen("tcp", *address)
@@ -36,18 +36,20 @@ func main() {
 	opts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(ensureValidToken),
 	}
-	cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
-	if err != nil {
-		log.Fatalf("Failed to generate credentials %v", err)
-	}
-	opts = append(opts, grpc.Creds(credentials.NewServerTLSFromCert(&cert)))
+	/*
+		cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
+		if err != nil {
+			log.Fatalf("Failed to generate credentials %v", err)
+		}
+		opts = append(opts, grpc.Creds(credentials.NewServerTLSFromCert(&cert)))
+	*/
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterChatServer(grpcServer, NewChatServer())
 	grpcServer.Serve(lis)
 }
 
 func ensureValidToken(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-	session, err := auth(ctx, info.Server.(*ChatServer)); 
+	session, err := auth(ctx, info.Server.(*ChatServer))
 	if err != nil {
 		return nil, err
 	}

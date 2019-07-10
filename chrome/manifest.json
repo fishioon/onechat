@@ -1,0 +1,51 @@
+{
+	"manifest_version": 2,
+	"name": "onechat",
+	"description": "chat with every web page",
+	"version": "0.0.1",
+	"icons": {
+		"16": "data/icons/icon-16.png",
+		"48": "data/icons/icon-64.png",
+		"128": "data/icons/icon.png"
+	},
+	"author": "fish",
+	"homepage_url": "http://fishioon.com",
+	"commands": {
+		"toggle-feature-foo": {
+			"suggested_key": {
+				"default": "Ctrl+Shift+O",
+				"mac": "Command+Shift+O"
+			},
+			"description": "Toggle feature foo"
+		}
+	},
+	"browser_action": {
+		"default_icon": "data/icons/icon-o.png"
+	},
+	"background": {
+		"scripts": [
+			"index.js"
+		]
+	},
+	"content_scripts": [
+		{
+			"matches": [
+				"file:///*/*",
+				"http://*/*",
+				"https://*/*"
+			],
+			"js": [
+				"data/vendor/jquery-2.1.3.min.js",
+				"data/danmu.js"
+			],
+			"run_at": "document_start"
+		}
+	],
+	"permissions": [
+		"storage",
+		"tabs",
+		"notifications",
+		"http://*/*",
+		"https://*/*"
+	]
+}

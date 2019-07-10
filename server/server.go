@@ -132,6 +132,10 @@ func (cs *ChatServer) PubMsg(ctx context.Context, req *pb.PubMsgReq) (*pb.PubMsg
 	return &pb.PubMsgRsp{}, err
 }
 
+func (cs *ChatServer) HeartBeat(ctx context.Context, req *pb.HeartBeatReq) (*pb.HeartBeatRsp, error) {
+	return &pb.HeartBeatRsp{}, nil
+}
+
 // Group ...
 func (cs *ChatServer) GroupAction(ctx context.Context, req *pb.GroupActionReq) (resp *pb.GroupActionRsp, err error) {
 	s := ctx.Value("session").(*Session)

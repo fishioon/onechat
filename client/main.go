@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	pb "github.com/fishioon/onechat/chat"
 	"golang.org/x/oauth2"
@@ -18,18 +19,13 @@ import (
 func main() {
 	address := flag.String("host", "127.0.0.1:9981", "onechat server address")
 	token := flag.String("token", "ifishjin-12345684234", "login token")
-	caPem := flag.String("ca", "ca.pem", "ca pem")
 	flag.Parse()
 	perRPC := oauth.NewOauthAccess(&oauth2.Token{
 		AccessToken: *token,
 	})
-	creds, err := credentials.NewClientTLSFromFile(*caPem, "x.test.youtube.com")
-	if err != nil {
-		log.Fatalf("failed to load credentials: %v", err)
-	}
 	opts := []grpc.DialOption{
 		grpc.WithPerRPCCredentials(perRPC),
-		grpc.WithTransportCredentials(creds),
+		grpc.WithTransportCredentials(credentials.NewTLS(nil)),
 	}
 	conn, err := grpc.Dial(*address, opts...)
 	if err != nil {
@@ -39,8 +35,17 @@ func main() {
 	c := pb.NewChatClient(conn)
 
 	go recvMsg(c, *token)
+	go heartBeat(c, time.Second * 10)
 	readCommand(c)
 	return
+}
+
+func heartBeat(c pb.ChatClient, d time.Duration) error {
+	ticker := time.NewTicker(d)
+	for _ = range ticker.C {
+		c.HeartBeat(context.TODO(), nil)
+	}
+	return nil
 }
 
 func recvMsg(c pb.ChatClient, token string) error {

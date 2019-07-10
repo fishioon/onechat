@@ -5,6 +5,7 @@ package chat;
 service Chat {
   rpc Conn(ConnReq) returns (stream Msg);
   rpc PubMsg(PubMsgReq) returns (PubMsgRsp);
+  rpc HeartBeat(HeartBeatReq) returns (HeartBeatRsp);
   rpc GroupAction(GroupActionReq) returns (GroupActionRsp);
 }
 
@@ -22,6 +23,8 @@ message GroupActionRsp { string gid = 1; }
 message PubMsgReq { Msg msg = 1; }
 
 message PubMsgRsp {}
+message HeartBeatReq {}
+message HeartBeatRsp {}
 
 message Msg {
   string msg_id = 1;
