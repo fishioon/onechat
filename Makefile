@@ -5,7 +5,6 @@ LDFLAGS=-ldflags "-X main.Version=${VERSION} -X main.Build=${BUILD}"
 
 build:
 	go build ${LDFLAGS} -o bin/server server/*.go
-	go build ${LDFLAGS} -o bin/client client/*.go
 
 proto:
 	protoc -I chat/ chat/*.proto --go_out=plugins=grpc:chat \

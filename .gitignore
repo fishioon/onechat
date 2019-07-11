@@ -15,3 +15,5 @@
 # vendor/
 bin/
 .DS_store
+extension/src/node_modules/
+extension/src/dist/

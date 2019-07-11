@@ -65,7 +65,6 @@ func (cs *ChatServer) Working() {
 			log.Printf("recv msg: [%v]", msg)
 			if group, ok := cs.groups[msg.GetToId()]; ok {
 				for _, e := range group.streams {
-					log.Printf("push msg to stream: [%+v]", e)
 					if e.online {
 						e.channel <- msg
 					}
@@ -94,7 +93,6 @@ func (cs *ChatServer) GetStream(token string) *Stream {
 		s = &Stream{
 			token:   token,
 			channel: make(chan *pb.Msg, 100),
-			online:  true,
 		}
 		cs.streams[token] = s
 	}
@@ -111,17 +109,16 @@ func (cs *ChatServer) Conn(in *pb.ConnReq, stream pb.Chat_ConnServer) error {
 	defer func() {
 		s.online = false
 	}()
+	s.online = true
 	log.Printf("stream connect success: [%+v]", s)
-	for {
-		select {
-		case msg := <-s.channel:
-			log.Printf("send msg [%s] to stream [%s]", msg.GetToId(), in.GetToken())
-			if err := stream.Send(msg); err != nil {
-				log.Printf("stream send fail %s", err.Error())
-				return err
-			}
+	for msg := range s.channel {
+		log.Printf("send msg [%s] to stream [%s]", msg.GetToId(), in.GetToken())
+		if err := stream.Send(msg); err != nil {
+			log.Printf("stream send fail %s", err.Error())
+			return err
 		}
 	}
+	return nil
 }
 
 // Pub ...
@@ -138,19 +135,21 @@ func (cs *ChatServer) HeartBeat(ctx context.Context, req *pb.HeartBeatReq) (*pb.
 
 // Group ...
 func (cs *ChatServer) GroupAction(ctx context.Context, req *pb.GroupActionReq) (resp *pb.GroupActionRsp, err error) {
-	s := ctx.Value("session").(*Session)
+	ses := ctx.Value("session").(*Session)
 	switch req.GetAction() {
 	case "active":
 	case "join":
 		group := cs.GetGroup(req.GetGid())
-		if _, ok := group.streams[s.sid]; ok {
-			return &pb.GroupActionRsp{}, nil
+		if s, ok := group.streams[ses.sid]; ok {
+			s.online = true
+		} else {
+			stream, ok := cs.streams[ses.sid]
+			if !ok {
+				return nil, errors.New("need connect first")
+			}
+			group.streams[ses.sid] = stream
 		}
-		stream, ok := cs.streams[s.sid]
-		if !ok {
-			return nil, errors.New("need connect first")
-		}
-		group.streams[s.sid] = stream
+		log.Printf("user [%s %s] join [%s]", ses.uid, ses.sid, group.id)
 	}
 	return &pb.GroupActionRsp{}, nil
 }
