@@ -87,15 +87,17 @@ func (cs *ChatServer) sendMsgToChannel(msg *pb.Msg) error {
 	return nil
 }
 
-func (cs *ChatServer) GetStream(token string) *Stream {
+func (cs *ChatServer) StreamConn(token string) *Stream {
 	s, ok := cs.streams[token]
-	if !ok {
-		s = &Stream{
-			token:   token,
-			channel: make(chan *pb.Msg, 100),
-		}
-		cs.streams[token] = s
+	if ok && s.online {
+		s.online = false
+		close(s.channel)
 	}
+	s = &Stream{
+		token:   token,
+		channel: make(chan *pb.Msg, 100),
+	}
+	cs.streams[token] = s
 	return s
 }
 
@@ -105,16 +107,19 @@ func (cs *ChatServer) Conn(in *pb.ConnReq, stream pb.Chat_ConnServer) error {
 	if token == "" {
 		return errors.New("token empty")
 	}
-	s := cs.GetStream(token)
-	defer func() {
-		s.online = false
-	}()
-	s.online = true
+	s := cs.StreamConn(token)
 	log.Printf("stream connect success: [%+v]", s)
+	stream.Send(&pb.Msg{
+		MsgId:   "",
+		Content: "connect success",
+		FromId:  "system",
+	})
 	for msg := range s.channel {
 		log.Printf("send msg [%s] to stream [%s]", msg.GetToId(), in.GetToken())
 		if err := stream.Send(msg); err != nil {
 			log.Printf("stream send fail %s", err.Error())
+			s.online = false
+			close(s.channel)
 			return err
 		}
 	}
