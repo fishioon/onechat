@@ -8,8 +8,8 @@ build:
 
 proto:
 	protoc -I chat/ chat/*.proto --go_out=plugins=grpc:chat \
-		--js_out=import_style=commonjs:chat \
-		--grpc-web_out=import_style=commonjs,mode=grpcwebtext:chat
+		--js_out=import_style=commonjs:./extension/src/ \
+		--grpc-web_out=import_style=commonjs,mode=grpcwebtext:./extension/src/
 
 install:
 	go install ${LDFLAGS}

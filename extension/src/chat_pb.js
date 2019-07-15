@@ -343,7 +343,8 @@ proto.chat.GroupActionReq.prototype.toObject = function(opt_includeInstance) {
 proto.chat.GroupActionReq.toObject = function(includeInstance, msg) {
   var f, obj = {
     gid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    action: jspb.Message.getFieldWithDefault(msg, 2, "")
+    uri: jspb.Message.getFieldWithDefault(msg, 2, ""),
+    action: jspb.Message.getFieldWithDefault(msg, 3, "")
   };
 
   if (includeInstance) {
@@ -386,6 +387,10 @@ proto.chat.GroupActionReq.deserializeBinaryFromReader = function(msg, reader) {
       break;
     case 2:
       var value = /** @type {string} */ (reader.readString());
+      msg.setUri(value);
+      break;
+    case 3:
+      var value = /** @type {string} */ (reader.readString());
       msg.setAction(value);
       break;
     default:
@@ -424,10 +429,17 @@ proto.chat.GroupActionReq.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getAction();
+  f = message.getUri();
   if (f.length > 0) {
     writer.writeString(
       2,
+      f
+    );
+  }
+  f = message.getAction();
+  if (f.length > 0) {
+    writer.writeString(
+      3,
       f
     );
   }
@@ -450,17 +462,32 @@ proto.chat.GroupActionReq.prototype.setGid = function(value) {
 
 
 /**
- * optional string action = 2;
+ * optional string uri = 2;
  * @return {string}
  */
-proto.chat.GroupActionReq.prototype.getAction = function() {
+proto.chat.GroupActionReq.prototype.getUri = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
 };
 
 
 /** @param {string} value */
-proto.chat.GroupActionReq.prototype.setAction = function(value) {
+proto.chat.GroupActionReq.prototype.setUri = function(value) {
   jspb.Message.setProto3StringField(this, 2, value);
+};
+
+
+/**
+ * optional string action = 3;
+ * @return {string}
+ */
+proto.chat.GroupActionReq.prototype.getAction = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 3, ""));
+};
+
+
+/** @param {string} value */
+proto.chat.GroupActionReq.prototype.setAction = function(value) {
+  jspb.Message.setProto3StringField(this, 3, value);
 };
 
 

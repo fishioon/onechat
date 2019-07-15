@@ -15,7 +15,8 @@ message ConnReq {
 
 message GroupActionReq {
   string gid = 1;
-  string action = 2;
+	string uri = 2;
+  string action = 3;
 }
 
 message GroupActionRsp { string gid = 1; }
