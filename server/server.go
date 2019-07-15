@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strings"
 
 	"github.com/bwmarrin/snowflake"
 	pb "github.com/fishioon/onechat/chat"
@@ -27,7 +28,7 @@ type Session struct {
 type Group struct {
 	id      string
 	uri     string
-	streams map[string]*Stream
+	streams map[string]bool
 }
 
 // ChatServer is used to implement chat
@@ -64,11 +65,13 @@ func (cs *ChatServer) Working() {
 		case msg := <-cs.in:
 			log.Printf("recv msg: [%v]", msg)
 			if group, ok := cs.groups[msg.GetToId()]; ok {
-				for _, e := range group.streams {
-					if e.online {
-						e.channel <- msg
+				for sid, _ := range group.streams {
+					if s, ok := cs.streams[sid]; ok && s.online {
+						s.channel <- msg
 					}
 				}
+			} else {
+				log.Printf("invalid msg with bad toid: [%v]", msg)
 			}
 		case action := <-cs.action:
 			switch action.action {
@@ -95,6 +98,7 @@ func (cs *ChatServer) StreamConn(token string) *Stream {
 	}
 	s = &Stream{
 		token:   token,
+		online:  true,
 		channel: make(chan *pb.Msg, 100),
 	}
 	cs.streams[token] = s
@@ -119,7 +123,6 @@ func (cs *ChatServer) Conn(in *pb.ConnReq, stream pb.Chat_ConnServer) error {
 		if err := stream.Send(msg); err != nil {
 			log.Printf("stream send fail %s", err.Error())
 			s.online = false
-			close(s.channel)
 			return err
 		}
 	}
@@ -140,23 +143,26 @@ func (cs *ChatServer) HeartBeat(ctx context.Context, req *pb.HeartBeatReq) (*pb.
 
 // Group ...
 func (cs *ChatServer) GroupAction(ctx context.Context, req *pb.GroupActionReq) (resp *pb.GroupActionRsp, err error) {
+	fixURL := func(url string) string {
+		if idx := strings.Index(url, "?"); idx > 0 {
+			return url[:idx]
+		}
+		return url
+	}
 	ses := ctx.Value("session").(*Session)
 	switch req.GetAction() {
 	case "active":
 	case "join":
-		group := cs.GetGroup(req.GetGid())
-		if s, ok := group.streams[ses.sid]; ok {
-			s.online = true
-		} else {
-			stream, ok := cs.streams[ses.sid]
-			if !ok {
-				return nil, errors.New("need connect first")
-			}
-			group.streams[ses.sid] = stream
+		gid := fixURL(req.GetGid())
+		group := cs.GetGroup(gid)
+		if _, ok := cs.streams[ses.sid]; !ok {
+			return nil, errors.New("need connect first")
 		}
+		group.streams[ses.sid] = true
 		log.Printf("user [%s %s] join [%s]", ses.uid, ses.sid, group.id)
+		return &pb.GroupActionRsp{Gid: gid}, nil
 	}
-	return &pb.GroupActionRsp{}, nil
+	return nil, nil
 }
 
 func (cs *ChatServer) GetGroup(gid string) *Group {
@@ -164,7 +170,7 @@ func (cs *ChatServer) GetGroup(gid string) *Group {
 	if !ok {
 		group = &Group{
 			id:      gid,
-			streams: make(map[string]*Stream),
+			streams: make(map[string]bool),
 		}
 		cs.groups[gid] = group
 	}

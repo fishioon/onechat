@@ -18,4 +18,4 @@ bin/
 extension/src/node_modules/
 extension/src/dist/
 extension/chrome.pem
-extension/chrome.crt
+extension/chrome.crx
