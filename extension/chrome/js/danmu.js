@@ -2,7 +2,7 @@
 var prefs = {
     defaultfontSize: 48,
     showAllMessages: false,
-    showUsername: false,
+    showUsername: true,
     pinWeixinTab: false,
     showNotifications: false,
     danmuDebug: true
