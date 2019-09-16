@@ -23,7 +23,9 @@
 		"default_icon": "img/icon-o.png"
 	},
 	"background": {
-		"scripts": ["js/background.js"]
+		"scripts": [
+			"js/background.js"
+		]
 	},
 	"content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
 	"content_scripts": [
@@ -46,5 +48,9 @@
 		"notifications",
 		"http://*/*",
 		"https://*/*"
+	],
+	"web_accessible_resources": [
+		"pages/input.html",
+		"content_scripts/input.css"
 	]
 }

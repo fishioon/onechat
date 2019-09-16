@@ -33,11 +33,11 @@ function showmsg(tabid, msg) {
 function chatInit() {
 	chrome.storage.local.get('onetoken', res => {
 		var token = ''
-		if (!res || !res.onetoken) {
+		if (res && res.onetoken) {
+			token = res.onetoken
+		} else {
 			token = randomToken()
 			chrome.storage.local.set({'onetoken': token})
-		} else {
-			token = res.onetoken
 		}
 		console.log('token', token)
 		uid = token.split('-')[0]

@@ -1,2 +1,10 @@
 # onechat
-Chat when together
+onechat 是一个基于URL的聊天室，只要大家访问的相同的地址，就相当于在同一个聊天室内评论聊天。
+依赖于浏览器插件
+
+## Chrome 插件安装
+
+
+## TODO
+* 增加登录模块
+* 增加评论模块
