@@ -12,7 +12,6 @@ import (
 	pb "github.com/fishioon/onechat/chat"
 	"golang.org/x/oauth2"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/oauth"
 )
 
@@ -25,7 +24,6 @@ func main() {
 	})
 	opts := []grpc.DialOption{
 		grpc.WithPerRPCCredentials(perRPC),
-		grpc.WithTransportCredentials(credentials.NewTLS(nil)),
 	}
 	conn, err := grpc.Dial(*address, opts...)
 	if err != nil {
@@ -35,17 +33,16 @@ func main() {
 	c := pb.NewChatClient(conn)
 
 	go recvMsg(c, *token)
-	go heartBeat(c, time.Second * 10)
+	go heartBeat(c, time.Second*10)
 	readCommand(c)
 	return
 }
 
-func heartBeat(c pb.ChatClient, d time.Duration) error {
+func heartBeat(c pb.ChatClient, d time.Duration) {
 	ticker := time.NewTicker(d)
 	for _ = range ticker.C {
 		c.HeartBeat(context.TODO(), nil)
 	}
-	return nil
 }
 
 func recvMsg(c pb.ChatClient, token string) error {

@@ -23,11 +23,6 @@ var (
 
 func main() {
 	address := flag.String("host", "127.0.0.1:9379", "onechat server listen address")
-	/*
-		certFile := flag.String("cert", "server.pem", "The TLS cert file")
-		keyFile := flag.String("key", "server.key", "The TLS key file")
-	*/
-
 	flag.Parse()
 	lis, err := net.Listen("tcp", *address)
 	if err != nil {
@@ -36,13 +31,6 @@ func main() {
 	opts := []grpc.ServerOption{
 		grpc.UnaryInterceptor(ensureValidToken),
 	}
-	/*
-		cert, err := tls.LoadX509KeyPair(*certFile, *keyFile)
-		if err != nil {
-			log.Fatalf("Failed to generate credentials %v", err)
-		}
-		opts = append(opts, grpc.Creds(credentials.NewServerTLSFromCert(&cert)))
-	*/
 	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterChatServer(grpcServer, NewChatServer())
 	grpcServer.Serve(lis)
