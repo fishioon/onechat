@@ -17,7 +17,7 @@ import (
 
 func main() {
 	address := flag.String("host", "127.0.0.1:9981", "onechat server address")
-	token := flag.String("token", "ifishjin-12345684234", "login token")
+	token := flag.String("token", "12345684234", "login token")
 	flag.Parse()
 	perRPC := oauth.NewOauthAccess(&oauth2.Token{
 		AccessToken: *token,
@@ -70,7 +70,7 @@ func readCommand(c pb.ChatClient) (err error) {
 		data := strings.SplitN(text, " ", 2)
 		return &pb.PubMsgReq{
 			Msg: &pb.Msg{
-				FromId:  "ifishjin",
+				FromId:  "ifish",
 				ToId:    data[0],
 				Content: data[1],
 			},
